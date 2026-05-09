@@ -24,9 +24,9 @@ COPY (
     FROM tweets ORDER BY ts
   )
   SELECT json_object(
-    'unix',  list(u),
-    'kind',  list(k),
-    'chars', list(c)
+    'unix',  list(u ORDER BY u),
+    'kind',  list(k ORDER BY u),
+    'chars', list(c ORDER BY u)
   ) FROM t
 ) TO 'build/tweets_min.json' (FORMAT CSV, HEADER false, QUOTE '', ESCAPE '');
 
@@ -73,10 +73,10 @@ COPY (
     GROUP BY 1,2,3
   )
   SELECT json_object(
-    'h',     list(h),
-    'd',     list(d),
-    'kind',  list(kind),
-    'n',     list(n)
+    'h',     list(h    ORDER BY h, d, kind),
+    'd',     list(d    ORDER BY h, d, kind),
+    'kind',  list(kind ORDER BY h, d, kind),
+    'n',     list(n    ORDER BY h, d, kind)
   )
   FROM counts
 ) TO 'build/hourly.json' (FORMAT CSV, HEADER false, QUOTE '', ESCAPE '');
@@ -99,42 +99,63 @@ COPY (
     ORDER BY day
   )
   SELECT json_object(
-    'day',        list(strftime(day, '%Y-%m-%d')),
-    'total',      list(total::INT),
-    'n_original', list(n_original::INT),
-    'n_reply',    list(n_reply::INT),
-    'n_quote',    list(n_quote::INT),
-    'n_rt',       list(n_rt::INT),
-    'chars',      list(chars)
+    'day',        list(strftime(day, '%Y-%m-%d') ORDER BY day),
+    'total',      list(total::INT       ORDER BY day),
+    'n_original', list(n_original::INT  ORDER BY day),
+    'n_reply',    list(n_reply::INT     ORDER BY day),
+    'n_quote',    list(n_quote::INT     ORDER BY day),
+    'n_rt',       list(n_rt::INT        ORDER BY day),
+    'chars',      list(chars            ORDER BY day)
   )
   FROM d
 ) TO 'build/daily.json' (FORMAT CSV, HEADER false, QUOTE '', ESCAPE '');
 
 ------------------------------------------------------------------
 -- 4) per-month breakdown (for trend + composition area chart).
+-- DENSIFIED: every calendar month between min(ts) and max(ts), zero-filled.
+-- list(... ORDER BY) is required — outer CTE ORDER BY isn't preserved through aggregation.
 ------------------------------------------------------------------
 COPY (
-  WITH m AS (
+  WITH bounds AS (
+    SELECT date_trunc('month', min(ts)) AS lo,
+           date_trunc('month', max(ts)) AS hi
+    FROM tweets
+  ),
+  months AS (
+    SELECT unnest(generate_series(lo, hi, INTERVAL 1 MONTH))::DATE AS ym_date
+    FROM bounds
+  ),
+  raw AS (
     SELECT
-      strftime(date_trunc('month', ts), '%Y-%m') AS ym,
+      date_trunc('month', ts)::DATE AS ym_date,
       COUNT(*)              AS total,
       SUM(is_original::INT) AS n_original,
       SUM(is_reply::INT)    AS n_reply,
       SUM(is_quote::INT)    AS n_quote,
       SUM(is_rt::INT)       AS n_rt,
       SUM(char_len)::INT    AS chars
-    FROM tweets
-    GROUP BY 1
-    ORDER BY 1
+    FROM tweets GROUP BY 1
+  ),
+  m AS (
+    SELECT
+      months.ym_date                            AS ym_date,
+      strftime(months.ym_date, '%Y-%m')         AS ym,
+      COALESCE(raw.total, 0)::INT               AS total,
+      COALESCE(raw.n_original, 0)::INT          AS n_original,
+      COALESCE(raw.n_reply, 0)::INT             AS n_reply,
+      COALESCE(raw.n_quote, 0)::INT             AS n_quote,
+      COALESCE(raw.n_rt, 0)::INT                AS n_rt,
+      COALESCE(raw.chars, 0)::INT               AS chars
+    FROM months LEFT JOIN raw USING (ym_date)
   )
   SELECT json_object(
-    'ym',         list(ym),
-    'total',      list(total::INT),
-    'n_original', list(n_original::INT),
-    'n_reply',    list(n_reply::INT),
-    'n_quote',    list(n_quote::INT),
-    'n_rt',       list(n_rt::INT),
-    'chars',      list(chars)
+    'ym',         list(ym         ORDER BY ym_date),
+    'total',      list(total      ORDER BY ym_date),
+    'n_original', list(n_original ORDER BY ym_date),
+    'n_reply',    list(n_reply    ORDER BY ym_date),
+    'n_quote',    list(n_quote    ORDER BY ym_date),
+    'n_rt',       list(n_rt       ORDER BY ym_date),
+    'chars',      list(chars      ORDER BY ym_date)
   )
   FROM m
 ) TO 'build/monthly.json' (FORMAT CSV, HEADER false, QUOTE '', ESCAPE '');
@@ -178,9 +199,9 @@ COPY (
     ORDER BY 1,2
   )
   SELECT json_object(
-    'year', list(yr),
-    'hour', list(hr),
-    'n',    list(n)
+    'year', list(yr ORDER BY yr, hr),
+    'hour', list(hr ORDER BY yr, hr),
+    'n',    list(n  ORDER BY yr, hr)
   )
   FROM per
 ) TO 'build/year_hour.json' (FORMAT CSV, HEADER false, QUOTE '', ESCAPE '');
