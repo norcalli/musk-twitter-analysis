@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- Created by claude -->
+<!-- Open Graph card source — render at 1200×630 and screenshot to og.png -->
+<html><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1200px; height: 630px; background: #0a0e1a; color: #e7ecf3;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+.wrap { padding: 56px 64px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+h1 { font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.08; max-width: 880px; }
+h1 .accent { color: #ff5e3a; }
+.sub { font-size: 26px; color: #8b94a8; line-height: 1.4; max-width: 940px; margin-top: 18px; }
+.stats { display: flex; gap: 28px; margin-top: 36px; }
+.stat { background: #131826; border: 1px solid #232a3d; border-radius: 14px; padding: 20px 28px; flex: 1; }
+.stat .l { font-size: 14px; color: #8b94a8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.stat .n { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.stat .n.accent { color: #ff5e3a; }
+.stat .n.yellow { color: #f5c542; }
+.stat .n.blue   { color: #5fc6ff; }
+.stat .s { font-size: 14px; color: #8b94a8; margin-top: 6px; }
+.byline { font-size: 18px; color: #8b94a8; margin-top: 20px; }
+.byline b { color: #e7ecf3; }
+.clock { position: absolute; right: 56px; top: 56px; width: 200px; height: 200px; }
+.clock svg { width: 100%; height: 100%; }
+</style></head><body>
+<div class="wrap">
+  <div>
+    <h1>How much time does Elon Musk<br>spend on <span class="accent">Twitter</span>?</h1>
+    <div class="sub">An interactive estimate based on every public post since 2010. Set your own assumptions; see what the data implies.</div>
+  </div>
+  <div>
+    <div class="stats">
+      <div class="stat"><div class="l">2024 average</div><div class="n yellow">3h 40min</div><div class="s">on the app, every day</div></div>
+      <div class="stat"><div class="l">% of waking hours, 2024</div><div class="n accent">22.9%</div><div class="s">of every 16h waking day</div></div>
+      <div class="stat"><div class="l">Posts analyzed</div><div class="n blue">55,099</div><div class="s">across 14,644 sessions</div></div>
+    </div>
+    <div class="byline"><b>Lower bound</b>, not a measurement · DuckDB + Chart.js · Drag the sliders yourself</div>
+  </div>
+</div>
+<div class="clock">
+  <svg viewBox="-100 -100 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle r="90" fill="#131826" stroke="#232a3d" stroke-width="2"/>
+    <circle r="30" fill="#0a0e1a" stroke="#232a3d"/>
+    <!-- 24 sectors with varying radii (mock heatmap) -->
+    <g id="sectors"></g>
+  </svg>
+</div>
+<script>
+// approximate Musk hourly activity (UTC) — visually evocative, not exact
+const radii = [78, 80, 82, 84, 80, 75, 68, 60, 52, 46, 42, 40, 42, 48, 56, 64, 72, 86, 88, 86, 84, 86, 84, 80];
+const g = document.getElementById('sectors');
+const ringMin = 30, NS = 'http://www.w3.org/2000/svg';
+for (let h = 0; h < 24; h++) {
+  const a0 = (h/24)*Math.PI*2 - Math.PI/2;
+  const a1 = ((h+1)/24)*Math.PI*2 - Math.PI/2;
+  const r = radii[h];
+  const x0 = ringMin*Math.cos(a0), y0 = ringMin*Math.sin(a0);
+  const x1 = r*Math.cos(a0), y1 = r*Math.sin(a0);
+  const x2 = r*Math.cos(a1), y2 = r*Math.sin(a1);
+  const x3 = ringMin*Math.cos(a1), y3 = ringMin*Math.sin(a1);
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', `M ${x0} ${y0} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} L ${x3} ${y3} A ${ringMin} ${ringMin} 0 0 0 ${x0} ${y0} Z`);
+  path.setAttribute('fill', '#ff5e3a');
+  path.setAttribute('opacity', 0.35 + 0.55 * ((r-40)/50));
+  g.appendChild(path);
+}
+</script>
+</body></html>

@@ -1,0 +1,14 @@
+# build artifacts (regenerated)
+build/
+site/
+*.duckdb
+*.duckdb.wal
+__pycache__/
+.DS_Store
+
+# raw dataset is large but reproducible via `make fetch`
+data/muskos_source.zip
+data/musk_raw.csv
+
+# playwright local cache (if anyone runs the screenshot script)
+.playwright-mcp/

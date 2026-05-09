@@ -1,0 +1,434 @@
+<!doctype html>
+<!-- Created by claude -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Elon Musk's Twitter time budget — interactive estimate</title>
+<meta name="description" content="An interactive lower-bound estimate of how much time Elon Musk spends on Twitter/X. Set your own assumptions for read-time, think-time, and typing speed; see what 55,000 public posts imply." />
+
+<!-- Open Graph / Twitter card -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Elon Musk's Twitter time budget" />
+<meta property="og:description" content="An interactive estimate of his time on the timeline. Set your own assumptions, see what 55,000 public posts imply." />
+<meta property="og:image" content="og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Elon Musk's Twitter time budget" />
+<meta name="twitter:description" content="Set your own assumptions, see what 55,000 public posts imply." />
+<meta name="twitter:image" content="og.png" />
+
+<!-- Inline SVG favicon: orange clock face -->
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="%230a0e1a" stroke="%23ff5e3a" stroke-width="4"/><line x1="32" y1="32" x2="32" y2="14" stroke="%23ff5e3a" stroke-width="4" stroke-linecap="round"/><line x1="32" y1="32" x2="46" y2="38" stroke="%235fc6ff" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="3" fill="%23ff5e3a"/></svg>' />
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --panel: #131826;
+  --panel2: #1a2030;
+  --ink: #e7ecf3;
+  --muted: #8b94a8;
+  --accent: #ff5e3a;
+  --accent2: #5fc6ff;
+  --green: #3ecf8e;
+  --yellow: #f5c542;
+  --red: #ff5e3a;
+  --grid: #232a3d;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 32px rgba(0,0,0,.3);
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 32px 28px 96px; }
+header.hero { padding: 28px 0 20px; border-bottom: 1px solid var(--grid); margin-bottom: 24px; }
+h1 { font-size: clamp(28px, 4vw, 48px); margin: 0 0 12px; font-weight: 700; letter-spacing: -0.02em; }
+h1 .accent { color: var(--accent); }
+.lede { color: var(--muted); font-size: 17px; max-width: 760px; line-height: 1.5; margin: 0 0 8px; }
+.byline { color: var(--muted); font-size: 13px; margin-top: 14px; }
+.byline a { color: var(--accent2); }
+
+h2 { font-size: 22px; margin: 0 0 16px; font-weight: 600; letter-spacing: -0.01em; }
+h2 .muted { color: var(--muted); font-size: 14px; font-weight: 400; margin-left: 8px;}
+h3 { font-size: 16px; margin: 0 0 8px; font-weight: 600; color: var(--ink); }
+
+section { margin: 36px 0; }
+.panel { background: var(--panel); border: 1px solid var(--grid); border-radius: 14px; padding: 20px 22px; box-shadow: var(--shadow); }
+.panel + .panel { margin-top: 18px; }
+
+/* knob row */
+.knobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px 22px; }
+.knob label { display:block; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;}
+.knob .row { display:flex; align-items:center; gap:10px;}
+.knob input[type=range] { flex:1; accent-color: var(--accent); }
+.knob .v { font-variant-numeric: tabular-nums; min-width: 56px; text-align:right; font-weight:600; color: var(--ink);}
+.knob .unit { color: var(--muted); font-size: 12px; }
+.knob .desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+
+/* headline cards */
+.hl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.hl .card { background: var(--panel2); border: 1px solid var(--grid); border-radius: 12px; padding: 16px 18px; }
+.hl .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; margin-bottom: 6px; }
+.hl .card .num { font-size: clamp(22px, 3vw, 32px); font-weight: 700; line-height: 1.05; letter-spacing:-0.01em; font-variant-numeric: tabular-nums;}
+.hl .card .num.accent { color: var(--accent); }
+.hl .card .num.green { color: var(--green); }
+.hl .card .num.yellow { color: var(--yellow); }
+.hl .card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* charts */
+.chart-wrap { position: relative; height: 320px; }
+.chart-wrap.tall { height: 380px; }
+.chart-wrap.short { height: 220px; }
+
+/* two-column grid */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+.split.aspect { grid-template-columns: 360px 1fr; }
+@media (max-width: 900px) { .split.aspect { grid-template-columns: 1fr; } }
+
+/* legend chips */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 12px; color: var(--muted); margin-top: 8px;}
+.legend .chip { display: inline-flex; align-items: center; gap: 5px; }
+.legend .chip i { display:inline-block; width:10px; height:10px; border-radius: 2px;}
+
+/* table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--grid); }
+th { color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing:.06em; font-size: 11px; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; }
+tr:hover td { background: var(--panel2); }
+
+/* calendar heatmap */
+.cal-svg { width: 100%; height: auto; display: block; }
+.cal-tooltip { position: absolute; background: #000; color: #fff; padding: 4px 8px; border-radius:4px; font-size:11px; pointer-events:none; opacity:0; transition: opacity .12s; transform: translate(-50%,-110%); white-space: nowrap; z-index: 100; }
+
+/* clock */
+.clock-wrap { aspect-ratio: 1; max-width: 380px; margin: 0 auto;}
+
+/* heatmap dow×hour */
+.hm-svg { width: 100%; height: auto; display: block;}
+
+/* methodology / footnotes */
+.method { font-size: 14px; line-height: 1.6; color: var(--ink); }
+.method p { margin: 8px 0; }
+.method code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; color: var(--accent2); }
+.method ul { padding-left: 20px; margin: 8px 0; }
+.method ul li { margin: 4px 0; color: var(--ink); }
+.muted { color: var(--muted); }
+
+/* mini-stat row above charts */
+.stat-row { display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: -6px 0 12px; }
+.stat-row b { color: var(--ink); font-weight: 600; }
+
+button.preset { background: var(--panel2); border: 1px solid var(--grid); color: var(--ink); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+button.preset:hover { background: var(--grid); }
+button.preset.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+footer { margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 13px; line-height: 1.55; }
+footer p { margin: 6px 0; }
+footer a { color: var(--accent2); }
+
+.tag { display: inline-block; background: var(--panel2); border: 1px solid var(--grid); padding: 2px 8px; border-radius: 999px; font-size: 11px; color: var(--muted); }
+.warn { color: var(--yellow); }
+
+/* mobile */
+@media (max-width: 640px) {
+  body, .wrap, section, .panel { min-width: 0; max-width: 100%; }
+  .wrap { padding: 16px 14px 64px; }
+  header.hero { padding: 16px 0 12px; }
+  h1 { font-size: 26px; }
+  .lede { font-size: 15px; }
+  .panel { padding: 14px 14px; border-radius: 10px; overflow-x: auto; }
+  section { margin: 24px 0; }
+  h2 { font-size: 18px; }
+  h2 .muted { display: block; margin-left: 0; margin-top: 2px; font-size: 12px; }
+  .hl { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hl .card { padding: 10px 12px; border-radius: 8px; }
+  .hl .card .num { font-size: 18px; }
+  .hl .card .label { font-size: 10px; }
+  .hl .card .sub { font-size: 11px; }
+  .knobs { gap: 12px; }
+  .preset-row { font-size: 11px; }
+  .preset-row button { padding: 5px 10px; font-size: 11px; }
+  table { font-size: 11px; }
+  th, td { padding: 5px 6px; }
+  /* methodology pre-blocks: shrink, allow horizontal scroll */
+  .method pre { font-size: 11px; overflow-x: auto; }
+  /* heatmap SVGs: allow them to shrink to container; cramped but no page burst */
+  #cal-container svg, #year-hour-container svg, #dow-hm-container svg,
+  .hm-svg, .cal-svg {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>How much time does Elon Musk spend on <span class="accent">Twitter</span>?</h1>
+  <p class="lede"><span id="hero-n">…</span> public posts, <span id="hero-range">…</span>. Set the assumptions yourself — read‑time, think‑time, typing speed, what counts as one session — and see what the data implies.</p>
+  <p class="byline">Source: a public scrape of <code>@elonmusk</code> posts (snapshot Aug 2025; tweets through Apr 13, 2025 — 2025 is partial). Built with DuckDB + Chart.js.</p>
+  <div class="panel" style="margin-top:14px; padding:12px 16px; background:linear-gradient(90deg, rgba(245,197,66,0.08), rgba(255,94,58,0.04)); border-color:#3a3220;">
+    <p style="margin:0; font-size:14px; line-height:1.55;"><b style="color:var(--yellow)">⚠ Lower bound, not a measurement.</b> The dataset is one community scrape — best available, not guaranteed exhaustive. Deleted posts and missed scrapes are gone forever. Pure scrolling that didn't end in a post is invisible to this method. Whatever number the page shows, the real one is at least that much.</p>
+  </div>
+</header>
+
+<!-- HOW IT WORKS — plain-English explainer =========================== -->
+<section>
+  <h2>How this works</h2>
+  <div class="panel method" style="font-size: 14.5px; line-height: 1.6;">
+    <p>We start with every public post Elon has sent — <b><span id="arch-n-tweets">…</span></b> of them going back to 2010, each tagged with the exact moment it went out. Posts that came in close succession get bundled into a single <b>session</b> — our shorthand for "he was on the app right then." If two posts are more than half an hour apart, that's two separate visits. Across his timeline that adds up to about <b><span id="arch-n-sessions">…</span></b> distinct sessions.</p>
+
+    <p style="margin-top:10px">For each session we add up time from two angles, and take whichever is bigger:</p>
+    <ol style="padding-left: 20px; margin: 6px 0;">
+      <li style="margin: 4px 0;"><b>Wall‑clock evidence.</b> If he posted at 9:00 and again at 9:25, he was on the app for at least 25 minutes. No way around it.</li>
+      <li style="margin: 4px 0;"><b>Per‑post effort.</b> Each post takes time on its own — reading the tweet you're replying to, deciding what to say, typing it out, hitting send. The sliders below let you set how long each step takes.</li>
+    </ol>
+    <p>Add it up across every session and you get the daily, monthly, and lifetime totals in the cards.</p>
+
+    <p style="margin-top:10px">Drag any slider and every chart redraws live. The only thing fixed when the data was prepared is the <b>half‑hour gap rule</b> that separates one session from the next — change it and a session like "9:00 then 9:35" merges or splits, which shifts the estimate. Drop a wider or tighter gap into the build and the page rebuilds with a new (but always defensible) number.</p>
+  </div>
+</section>
+
+<!-- KNOBS ============================================================= -->
+<section>
+  <h2>The knobs <span class="muted">— change these, every chart updates live</span></h2>
+  <div class="panel">
+    <div class="knobs" id="knobs"></div>
+    <div class="preset-row">
+      <span class="muted" style="font-size:12px; align-self:center;">Presets:</span>
+      <button class="preset" data-preset="conservative">Conservative</button>
+      <button class="preset active" data-preset="default">Default</button>
+      <button class="preset" data-preset="heavy">Heavy interpretation</button>
+      <button class="preset" data-preset="doomscroll">Doomscroller (max scroll padding)</button>
+    </div>
+    <p class="muted" style="font-size:12px; margin-top:10px; line-height:1.5;">
+      Heads up: many of his sessions are anchored by <i>wall‑clock evidence</i> — if he posted at 9:00 and 9:25 he was on the app for 25 min regardless of how fast he types. So a few of these knobs barely move the headline number. The breakdown card below shows where the time actually comes from.
+    </p>
+  </div>
+</section>
+
+<!-- HEADLINE CARDS ===================================================== -->
+<section>
+  <h2>Headline numbers <span class="muted" id="hl-sub">— with current knob settings</span></h2>
+  <div class="hl" id="hl-cards"></div>
+</section>
+
+<!-- ANCHORING BREAKDOWN ============================================== -->
+<section>
+  <h2>Where the time comes from <span class="muted">— wall‑clock evidence vs. slider math</span></h2>
+  <div class="panel" id="anchoring"></div>
+</section>
+
+<!-- DAILY TIME CHART =================================================== -->
+<section>
+  <h2>Hours on Twitter, per day <span class="muted">— smoothed</span></h2>
+  <div class="panel">
+    <div class="stat-row" id="daily-stats"></div>
+    <div class="chart-wrap tall"><canvas id="chart-daily"></canvas></div>
+  </div>
+</section>
+
+<!-- CALENDAR HEATMAP =================================================== -->
+<section>
+  <h2>Calendar of activity <span class="muted">— color intensity = hours that day</span></h2>
+  <div class="panel">
+    <div id="cal-container"></div>
+    <div class="legend">
+      <span class="chip"><i style="background:#1a2030"></i>0h</span>
+      <span class="chip"><i style="background:#2c4d3a"></i>0–1h</span>
+      <span class="chip"><i style="background:#3ecf8e"></i>1–3h</span>
+      <span class="chip"><i style="background:#f5c542"></i>3–5h</span>
+      <span class="chip"><i style="background:#ff8a3a"></i>5–8h</span>
+      <span class="chip"><i style="background:#ff2222"></i>&gt;8h</span>
+    </div>
+  </div>
+</section>
+
+<!-- HOUR OF DAY + DOW HEATMAP ========================================= -->
+<section>
+  <h2>When during the day? <span class="muted">— circadian rhythm of the timeline</span></h2>
+  <div class="preset-row" id="tz-buttons" style="margin-bottom:14px">
+    <span class="muted" style="font-size:12px; align-self:center;">Time zone:</span>
+    <button class="preset" data-tz="0">UTC</button>
+    <button class="preset" data-tz="-6">Austin (UTC−6)</button>
+    <button class="preset active" data-tz="-7">California (UTC−7, PDT)</button>
+    <button class="preset" data-tz="-8">California (UTC−8, PST)</button>
+  </div>
+  <p class="muted" style="font-size:12px; margin-top:-8px; margin-bottom:14px;">The dataset stores timestamps as UTC. Buttons apply a fixed offset — no DST handling. PDT (−7) is a reasonable default for most of the year in California; flip to −8 for winter.</p>
+  <div class="split">
+    <div class="panel">
+      <h3>Tweets by hour of day (clock)</h3>
+      <div class="clock-wrap"><svg id="clock" viewBox="-100 -100 200 200" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <p class="muted" style="font-size:12px; text-align:center; margin-top:6px;">Hour in selected time zone. Length of bar = % of all tweets posted in that hour.</p>
+    </div>
+    <div class="panel">
+      <h3>Day‑of‑week × hour heatmap</h3>
+      <div id="dow-hm-container"></div>
+      <p class="muted" style="font-size:12px; margin-top:6px;">Darker = more posts. Mon top, Sun bottom. Selected time zone.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TWEET TYPE COMPOSITION =========================================== -->
+<section>
+  <h2>What kind of posts? <span class="muted">— composition over time</span></h2>
+  <div class="panel">
+    <div class="chart-wrap"><canvas id="chart-composition"></canvas></div>
+    <p class="muted" style="font-size: 13px; margin-top: 6px;">Replies dominate — every reply implies he had to read the parent tweet first.</p>
+  </div>
+</section>
+
+<!-- MONTHLY BAR ====================================================== -->
+<section>
+  <h2>Monthly time on Twitter <span class="muted">— hours per month, all years</span></h2>
+  <div class="panel">
+    <div class="chart-wrap tall"><canvas id="chart-monthly"></canvas></div>
+  </div>
+</section>
+
+<!-- SLEEP / YEAR-HOUR HEATMAP ======================================== -->
+<section>
+  <h2>Does he sleep? <span class="muted">— activity by hour, year by year</span></h2>
+  <div class="panel">
+    <div id="year-hour-container"></div>
+    <p class="muted" style="font-size:12px; margin-top:8px;">Each row = one year. Cell darkness = share of that year's posts in that hour (selected time zone). Look for the dark band — the closest thing to sleep. The band <i>shrinks</i> after 2022.</p>
+  </div>
+</section>
+
+<!-- TOP SESSIONS ===================================================== -->
+<section>
+  <h2>Longest binge sessions <span class="muted">— uninterrupted runs of posts</span></h2>
+  <div class="panel">
+    <table id="top-sessions">
+      <thead><tr><th>Started (UTC)</th><th class="num">Length</th><th class="num">Posts</th><th class="num">Originals</th><th class="num">Replies</th><th class="num">Quotes</th><th class="num">Posts/min</th><th class="num">Chars typed</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- TOP DAYS ========================================================= -->
+<section>
+  <h2>Highest tweet‑count days <span class="muted">— top 30 single days</span></h2>
+  <div class="panel">
+    <div class="chart-wrap tall"><canvas id="chart-top-days"></canvas></div>
+  </div>
+</section>
+
+<!-- METHODOLOGY ====================================================== -->
+<section id="methodology">
+  <h2>Methodology &amp; data sources</h2>
+
+  <div class="panel method">
+    <h3>1. Dataset</h3>
+    <p>Posts come from a public, community‑maintained scrape of <code>@elonmusk</code>'s X.com timeline, snapshot dated <b>2025‑08‑15</b>. Source repo: <a href="https://github.com/MagdalenaRomaniecka/Decompiling-MuskOS" target="_blank" rel="noopener">MagdalenaRomaniecka/Decompiling‑MuskOS</a> &nbsp;<span class="tag">CSV · 56 MB</span>.</p>
+    <p>Raw rows: <b>67,978</b>. After dedupe on <code>id</code> and dropping rows with no <code>createdAt</code>: <b><span id="meta-n">…</span></b> usable posts spanning <b><span id="meta-range">…</span></b>. The dataset stops at 2025‑04‑13 — anything more recent isn't in this build. Re‑run <code>make fetch &amp;&amp; make</code> against a newer snapshot and the entire site rebuilds.</p>
+
+    <h3 style="margin-top:18px">2. Schema actually used</h3>
+    <p>From each row we keep:</p>
+    <ul>
+      <li><code>id</code> — primary key for dedupe</li>
+      <li><code>createdAt</code> — ISO timestamp, UTC</li>
+      <li><code>fullText</code> — the post body (we use <code>length(fullText)</code> for character count)</li>
+      <li><code>isReply</code>, <code>isRetweet</code>, <code>isQuote</code> — boolean flags from the upstream scraper. A post is "original" iff all three are false.</li>
+    </ul>
+    <p>Engagement counts (<code>likeCount</code>, <code>replyCount</code>, etc.) are stored but the time‑budget model doesn't use them.</p>
+
+    <h3 style="margin-top:18px">3. Sessionization</h3>
+    <p>A <b>session</b> is a maximal run of posts where every consecutive gap is ≤ <code>session_gap_min</code> minutes. Default is <b>30 minutes</b>. Larger gap → fewer, longer sessions; smaller gap → more, shorter sessions and probably a smaller estimate.</p>
+    <p>Sessionization runs entirely in your browser, on per‑tweet timestamps shipped with the page. The <code>session_gap_min</code> slider re‑groups all 55k posts each time you move it (~30 ms).</p>
+
+    <h3 style="margin-top:18px">4. Per‑post time cost</h3>
+    <p>Each post gets a minimum time cost based on its kind. With knob symbols matching the panel above:</p>
+    <pre style="background:var(--panel2); padding:12px 14px; border-radius:8px; overflow-x:auto; margin:6px 0; line-height:1.55;">cost(original) =                 think_original                  + chars/type_cps + send
+cost(reply)    = read_context  + think_reply                     + chars/type_cps + send
+cost(quote)    = read_context  + think_quote                     + chars/type_cps + send
+cost(retweet)  =                 think_rt                                          + send</pre>
+    <ul>
+      <li><b>read_context</b> — only on replies and quotes, since you have to read the parent first. Originals come from the user's own brain.</li>
+      <li><b>think_*</b> — coming up with what to say. Originals are by far the heaviest; retweets are nearly free.</li>
+      <li><b>chars/type_cps</b> — typing at the configured speed. <code>type_cps = 3</code> matches mobile thumb‑typing; 5–7 is typical desktop.</li>
+      <li><b>send</b> — tap, confirm, occasional edit. Same flat overhead per post.</li>
+    </ul>
+
+    <h3 style="margin-top:18px">5. Per‑session time</h3>
+    <p>Each session has three components, all added together:</p>
+    <ul>
+      <li><b>Span</b> — <code>end − start</code>. If you posted at 9:00 and again at 9:25, you were on the app for at least 25 minutes regardless of how fast you think.</li>
+      <li><b>Per‑post effort</b> — <code>Σ cost(post)</code>. For a tight burst (10 replies in 30 seconds), span is small but typing+thinking is long; this term dominates.</li>
+      <li><b>Edge padding</b> — <code>2·edge_pad</code>. Opening the app + glancing at notifications, applied once at start and once at end of every session, regardless of which of the other two terms is bigger.</li>
+    </ul>
+    <p>The first two are alternatives — only the bigger one represents actual time. Edge pad is added unconditionally:</p>
+    <pre style="background:var(--panel2); padding:12px 14px; border-radius:8px; overflow-x:auto; margin:6px 0;">session_time = max( span , Σ cost(post) ) + 2·edge_pad</pre>
+    <p><b>Daily total</b> = sum of <code>session_time</code> for every session that started that day.</p>
+
+    <h3 style="margin-top:18px">6. Knob reference</h3>
+    <table style="margin-top:6px">
+      <thead><tr><th>Knob</th><th class="num">Default</th><th>What it represents</th></tr></thead>
+      <tbody>
+        <tr><td><code>read_context</code></td><td class="num">8 s</td><td>Time to read the parent of a reply or quote</td></tr>
+        <tr><td><code>think_original</code></td><td class="num">30 s</td><td>Composing an original take from a blank slate</td></tr>
+        <tr><td><code>think_reply</code></td><td class="num">10 s</td><td>Reacting to something you've already read</td></tr>
+        <tr><td><code>think_quote</code></td><td class="num">15 s</td><td>Quote‑tweeting requires more setup than a plain reply</td></tr>
+        <tr><td><code>think_rt</code></td><td class="num">2 s</td><td>See it, tap RT, done</td></tr>
+        <tr><td><code>type_cps</code></td><td class="num">3 cps</td><td>Typing speed, characters per second</td></tr>
+        <tr><td><code>send</code></td><td class="num">3 s</td><td>Tap, confirm, occasional edit</td></tr>
+        <tr><td><code>edge_pad</code></td><td class="num">30 s</td><td>Buffer at start and end of every session</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:18px">7. Where the "% of waking life" number comes from</h3>
+    <p>We assume a 16‑hour waking day. <code>career_avg = total_estimated_seconds / (calendar_days × 16 × 3600)</code>. The 2024‑specific number uses just 2024's posts and 2024's calendar days. Calendar days, not active days — empty days still count against the denominator.</p>
+
+    <h3 style="margin-top:18px">8. What this method misses (read this)</h3>
+    <ul>
+      <li><b>Pure consumption.</b> Scrolling without posting is invisible to a post‑based estimate. If he opens the app for 20 minutes and posts nothing, this analysis sees zero seconds. The real number is <i>higher</i> than reported.</li>
+      <li><b>Deleted posts.</b> Anything deleted before the snapshot date is gone. We have no way to recover it. The real number is <i>higher</i>.</li>
+      <li><b>DMs, Spaces, profile checks.</b> Not in the dataset, not in the model.</li>
+      <li><b>Time‑zone variation.</b> All timestamps are UTC. The hour‑of‑day plots are UTC. Convert mentally for whichever timezone you imagine he's in (and which timezone — he travels constantly).</li>
+      <li><b>Multi‑device sessions.</b> Posting from desktop while phone is open elsewhere counts only as one session.</li>
+    </ul>
+    <p class="muted">Net: the headline number is a <b>lower bound</b>. Make every assumption optimistic for him (high typing speed, low think time, small edge pad) — and the lower bound is still huge.</p>
+
+    <h3 style="margin-top:18px">9. Reproducibility</h3>
+    <p>The whole pipeline lives in a Makefile:</p>
+    <pre style="background:var(--panel2); padding:12px 14px; border-radius:8px; overflow-x:auto; margin:6px 0;">make fetch       # re-download upstream dataset
+make             # build/musk.db → build/*.json → site/index.html
+make serve       # local server on :8765</pre>
+    <p>Steps: <code>sql/load.sql</code> (CSV → DuckDB tables, dedupe) → <code>sql/sessions.sql</code> (initial sessionization) → <code>sql/exports.sql</code> (parquet archive + columnar JSON, including per‑tweet timestamps) → <code>scripts/build_site.py</code> (inject JSON into <code>web/index.template.html</code>).</p>
+    <p>All knobs above run <i>client‑side</i> — including <code>session_gap_min</code>, which re‑sessionizes from the per‑tweet data array on the fly. Move the sliders, every chart updates instantly.</p>
+
+    <h3 style="margin-top:18px">10. Honest caveats</h3>
+    <ul>
+      <li>The upstream scrape is not the X firehose — it's almost certainly missing some posts, especially older ones.</li>
+      <li>Time costs are population‑level guesses, not measurements of one specific person. Heavy posters get faster with practice; the defaults are calibrated for a competent but not extraordinary mobile user.</li>
+      <li>"Session" is a heuristic. Two real sessions separated by a 35‑minute gap merge into one in the dataset if you turn the gap up to 60 minutes.</li>
+      <li>Hour‑of‑day "sleep" inference is suggestive, not diagnostic. He could be awake and not posting, or asleep with a scheduler.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <p><b>Data:</b> aggregated from public X.com posts (snapshot Aug 2025; tweets through Apr 13 2025). Timestamps are UTC. Counts after dedupe.</p>
+  <p><b>Code:</b> DuckDB pipeline + static page. Knobs run client‑side; numbers update live.</p>
+</footer>
+
+</div>
+
+<div class="cal-tooltip" id="tip"></div>
+
+<!-- DATA INLINED -->
+<script type="application/json" id="data-meta">__META_JSON__</script>
+<script type="application/json" id="data-tweets-min">__TWEETS_MIN_JSON__</script>
+<script type="application/json" id="data-sessions">__SESSIONS_JSON__</script>
+<script type="application/json" id="data-daily">__DAILY_JSON__</script>
+<script type="application/json" id="data-monthly">__MONTHLY_JSON__</script>
+<script type="application/json" id="data-hourly">__HOURLY_JSON__</script>
+<script type="application/json" id="data-year-hour">__YEAR_HOUR_JSON__</script>
+<script type="application/json" id="data-top-sessions">__TOP_SESSIONS_JSON__</script>
+<script type="application/json" id="data-top-days">__TOP_DAYS_JSON__</script>
+
+<script src="app.js"></script>
+</body>
+</html>
